@@ -9,7 +9,7 @@ import edu.princeton.cs.algs4.In;
 import java.util.ArrayList;
 
 public class Board {
-    private int[][] board;
+    private final int[][] board;
     private final int length;
 
     // create a board from an n-by-n array of tiles,
@@ -22,17 +22,15 @@ public class Board {
 
     // string representation of this board
     public String toString() {
-        // First line is the board size n
-        String outputStr = String.format("%d\n", length);
-
-        for (int row = 0; row < length; row++) {
-            for (int col = 0; col < length; col++) {
-                outputStr += Integer.toString(board[row][col]);
+        StringBuilder s = new StringBuilder();
+        s.append(length + "\n");
+        for (int i = 0; i < length; i++) {
+            for (int j = 0; j < length; j++) {
+                s.append(String.format("%2d ", board[i][j]));
             }
-            outputStr += "\n";
+            s.append("\n");
         }
-
-        return outputStr;
+        return s.toString();
     }
 
     // board dimension n
@@ -132,7 +130,7 @@ public class Board {
         return newBoard;
     }
 
-    // Return a new Board that have tiles swapped
+    // Return a new copy of Board that have tiles swapped
     private Board swapTiles(int currRow, int currCol, int thatRow, int thatCol) {
         // Check is neighbor
         assert Math.abs(currRow - thatRow) <= 1;
@@ -190,8 +188,31 @@ public class Board {
         throw new RuntimeException("No blank tile found. Board is not valid.");
     }
 
+
     // a board that is obtained by exchanging any pair of tiles
-    // public Board twin()
+    // swap the first two non-zero tiles
+    public Board twin() {
+        for (int row1 = 0; row1 < length; row1++) {
+            for (int col1 = 0; col1 < length; col1++) {
+                if (board[row1][col1] != 0) {
+
+                    for (int row2 = row1; row2 < length; row2++) {
+                        int col2 = col1 + 1;
+                        if (row2 != row1) {
+                            col2 = 0;
+                        }
+
+                        for (; col2 < length; col2++) {
+                            if (board[row2][col2] != 0) {
+                                return swapTiles(row1, col1, row2, col2);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        throw new RuntimeException("Cannot swap board");
+    }
 
     // Unit testing
     public static void main(String[] args) {
@@ -210,6 +231,9 @@ public class Board {
 
         // Run it and expect NO exception
         testBoard.neighbors();
+
+        // Print out twin board
+        System.out.println(testBoard.twin().toString());
 
         // Change the tiles and check equals() report False
         tiles[n - 1][n - 1] = 3;
