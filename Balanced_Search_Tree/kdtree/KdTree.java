@@ -10,40 +10,71 @@ import edu.princeton.cs.algs4.RectHV;
 import edu.princeton.cs.algs4.StdDraw;
 
 import java.util.ArrayList;
-import java.util.TreeSet;
 
-public class PointSET {
-    private TreeSet<Point2D> bst;
+public class KdTree {
+    private static class Node {
+        boolean splitByX;
+        double x;
+        double y;
+        Node left = null;
+        Node right = null;
+
+        public Node(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private Node root = null;
+    private int size = 0;
 
     // construct an empty set of points
-    public PointSET() {
-        bst = new TreeSet<>();
+    public KdTree() {
     }
 
     // is the set empty?
     public boolean isEmpty() {
-        return bst.isEmpty();
+        return root == null;
     }
 
     // number of points in the set
     public int size() {
-        return bst.size();
+        return size;
     }
 
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        if (p == null) {
-            throw new IllegalArgumentException();
+        Node target = new Node(p.x(), p.y());
+        insertStep(root, p, true);
+    }
+
+    private void insertStep(Node parent, Node point, boolean splitX) {
+        // Adding a node to a empty slot
+        if (parent == null) {
+            parent = point;
+            return;
         }
-        bst.add(p);
+
+        if (parent.splitByX) {
+
+            if (point.x < parent.x) {
+                insertStep(parent.left, point);
+            }
+            else {
+                if ((point.x == parent.x && point.y == parent.y)) {
+                    // Same point
+                    return;
+                }
+                else {
+
+                }
+            }
+        }
     }
 
     // does the set contain point p?
     public boolean contains(Point2D p) {
-        if (p == null) {
-            throw new IllegalArgumentException();
-        }
-        return bst.contains(p);
+        return false;
     }
 
     // draw all points to standard draw
@@ -55,10 +86,6 @@ public class PointSET {
 
     // all points that are inside the rectangle (or on the boundary)
     public Iterable<Point2D> range(RectHV rect) {
-        if (rect == null) {
-            throw new IllegalArgumentException();
-        }
-
         ArrayList<Point2D> pointsInRange = new ArrayList<>();
         for (Point2D eachPoint : bst) {
             if (rect.contains(eachPoint)) {
@@ -87,8 +114,7 @@ public class PointSET {
     public static void main(String[] args) {
         String filename = args[0];
         In in = new In(filename);
-        PointSET brute = new PointSET();
-        int nPoints = 0;
+        KdTree brute = new KdTree();
 
         while (!in.isEmpty()) {
             double x = in.readDouble();
@@ -96,7 +122,6 @@ public class PointSET {
             Point2D p = new Point2D(x, y);
             System.out.printf("%f %f\n", x, y);
             brute.insert(p);
-            nPoints++;
         }
 
         // draw the points
@@ -106,7 +131,5 @@ public class PointSET {
         brute.draw();
         StdDraw.show();
 
-        ArrayList<Point2D> results = (ArrayList<Point2D>) brute.range(new RectHV(0, 0, 1, 1));
-        assert results.size() == nPoints;
     }
 }
