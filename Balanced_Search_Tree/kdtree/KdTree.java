@@ -13,20 +13,23 @@ import java.util.ArrayList;
 
 public class KdTree {
     private static class Node {
-        boolean splitByX;
-        double x;
-        double y;
-        Node left = null;
-        Node right = null;
+        private boolean splitByX;
+        private double x, y;
+        private Node left, right;
+        private int size;
 
-        public Node(double x, double y) {
+        public Node(double x, double y, int size, boolean splitByX) {
             this.x = x;
             this.y = y;
+            this.size = size;
+            this.splitByX = splitByX;
         }
     }
 
-    private Node root = null;
+    private Node root;
     private int size = 0;
+    final private boolean IS_SPLIT_BY_X = true;
+    final private boolean IS_SPLIT_BY_Y = false;
 
     // construct an empty set of points
     public KdTree() {
@@ -44,32 +47,47 @@ public class KdTree {
 
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        Node target = new Node(p.x(), p.y());
-        insertStep(root, p, true);
+        root = insertEntry(root, p.x(), p.y(), IS_SPLIT_BY_X);
     }
 
-    private void insertStep(Node parent, Node point, boolean splitX) {
+    private Node insertEntry(Node currentNode, double x, double y, boolean splitByX) {
         // Adding a node to a empty slot
-        if (parent == null) {
-            parent = point;
-            return;
+        if (currentNode == null) {
+            return new Node(x, y, 1, splitByX);
         }
 
-        if (parent.splitByX) {
-
-            if (point.x < parent.x) {
-                insertStep(parent.left, point);
+        if (currentNode.splitByX) {
+            if (x < currentNode.x) {
+                currentNode.left = insertEntry(currentNode.left, x, y, IS_SPLIT_BY_Y);
             }
             else {
-                if ((point.x == parent.x && point.y == parent.y)) {
-                    // Same point
-                    return;
+                if ((x == currentNode.x && y == currentNode.y)) {
+                    System.out.printf("Node (%f, %f) is already in the tree.\n",
+                                      x, y);
                 }
                 else {
-
+                    currentNode.right = insertEntry(currentNode.right, x, y, IS_SPLIT_BY_Y);
                 }
             }
         }
+        else {
+            // not splitByX, aka split by y
+            if (y < currentNode.y) {
+                // go to left branch
+                currentNode.left = insertEntry(currentNode.left, x, y, IS_SPLIT_BY_X);
+            }
+            else {
+                // go to right branch
+                if ((x == currentNode.x && y == currentNode.y)) {
+                    System.out.printf("Node (%f, %f) is already in the tree.\n",
+                                      x, y);
+                }
+                else {
+                    currentNode.right = insertEntry(currentNode.right, x, y, IS_SPLIT_BY_X);
+                }
+            }
+        }
+        return currentNode;
     }
 
     // does the set contain point p?
