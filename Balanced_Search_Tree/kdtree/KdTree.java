@@ -26,9 +26,9 @@ public class KdTree {
     }
 
     private Node root;
-    final private boolean IS_SPLIT_BY_X = true;
-    final private boolean IS_SPLIT_BY_Y = false;
-    final private double MIN_X = 0.0, MAX_X = 1.0, MIN_Y = 0.0, MAX_Y = 1.0;
+    private final boolean isSplitByX = true;
+    private final boolean isSplitByY = false;
+    private final double minX = 0.0, maxX = 1.0, minY = 0.0, maxY = 1.0;
 
     // construct an empty set of points
     public KdTree() {
@@ -46,11 +46,8 @@ public class KdTree {
 
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
-        if (contains(p)) {
-            System.out.printf("Node (%f, %f) is already in the tree.\n", p.x(), p.y());
-        }
-        else {
-            root = insert(root, p, IS_SPLIT_BY_X);
+        if (!contains(p)) {
+            root = insert(root, p, isSplitByX);
         }
     }
 
@@ -62,23 +59,23 @@ public class KdTree {
 
         if (currentNode.splitByX) {
             if (p.x() < currentNode.p.x()) {
-                currentNode.left = insert(currentNode.left, p, IS_SPLIT_BY_Y);
+                currentNode.left = insert(currentNode.left, p, isSplitByY);
             }
             else {
-                currentNode.right = insert(currentNode.right, p, IS_SPLIT_BY_Y);
+                currentNode.right = insert(currentNode.right, p, isSplitByY);
             }
         }
         else {
             // not splitByX, aka split by p.y()
             if (p.y() < currentNode.p.y()) {
                 // go to left branch
-                currentNode.left = insert(currentNode.left, p, IS_SPLIT_BY_X);
+                currentNode.left = insert(currentNode.left, p, isSplitByX);
             }
             else {
-                currentNode.right = insert(currentNode.right, p, IS_SPLIT_BY_X);
+                currentNode.right = insert(currentNode.right, p, isSplitByX);
             }
         }
-        
+
         currentNode.size++;
         return currentNode;
     }
@@ -108,7 +105,7 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
-        draw(root, MIN_X, MAX_X, MIN_Y, MAX_Y);
+        draw(root, minX, maxX, minY, maxY);
     }
 
     private void draw(Node node, double minX, double maxX, double minY, double maxY) {

@@ -74,7 +74,7 @@ public class PointSET {
         Point2D closestPoint = null;
 
         for (Point2D eachPoint : bst) {
-            double distToP = eachPoint.distanceTo(p);
+            double distToP = eachPoint.distanceSquaredTo(p);
             if (distToP > maxDist) {
                 closestPoint = eachPoint;
             }
