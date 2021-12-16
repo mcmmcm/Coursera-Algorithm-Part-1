@@ -17,11 +17,13 @@ public class KdTree {
         private Point2D p;
         private Node left, right;
         private int size;
+        private RectHV nodeRect;
 
-        public Node(Point2D p, int size, boolean splitByX) {
+        public Node(Point2D p, int size, boolean splitByX, RectHV nodeRect) {
             this.p = p;
             this.size = size;
             this.splitByX = splitByX;
+            this.nodeRect = nodeRect;
         }
     }
 
@@ -29,6 +31,7 @@ public class KdTree {
     private final boolean isSplitByX = true;
     private final boolean isSplitByY = false;
     private final double minX = 0.0, maxX = 1.0, minY = 0.0, maxY = 1.0;
+    private final RectHV boardRect = new RectHV(minX, minY, maxX, maxY);
 
     // construct an empty set of points
     public KdTree() {
@@ -47,32 +50,39 @@ public class KdTree {
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (!contains(p)) {
-            root = insert(root, p, isSplitByX);
+            root = insert(root, p, isSplitByX, boardRect);
         }
     }
 
-    private Node insert(Node currentNode, Point2D p, boolean splitByX) {
+    private Node insert(Node currentNode, Point2D p, boolean splitByX, RectHV nodeRect) {
         // Adding a node to an empty slot
         if (currentNode == null) {
-            return new Node(p, 1, splitByX);
+            return new Node(p, 1, splitByX, nodeRect);
         }
 
         if (currentNode.splitByX) {
             if (p.x() < currentNode.p.x()) {
-                currentNode.left = insert(currentNode.left, p, isSplitByY);
+                RectHV childRect = new RectHV(nodeRect.xmin(), nodeRect.ymin(), currentNode.p.x(),
+                                              nodeRect.ymax());
+                currentNode.left = insert(currentNode.left, p, isSplitByY, childRect);
             }
             else {
-                currentNode.right = insert(currentNode.right, p, isSplitByY);
+                RectHV childRect = new RectHV(currentNode.p.x(), nodeRect.ymin(), nodeRect.xmax(),
+                                              nodeRect.ymax());
+                currentNode.right = insert(currentNode.right, p, isSplitByY, childRect);
             }
         }
         else {
             // not splitByX, aka split by p.y()
             if (p.y() < currentNode.p.y()) {
-                // go to left branch
-                currentNode.left = insert(currentNode.left, p, isSplitByX);
+                RectHV childRect = new RectHV(nodeRect.xmin(), nodeRect.ymin(), nodeRect.xmax(),
+                                              currentNode.p.y());
+                currentNode.left = insert(currentNode.left, p, isSplitByX, childRect);
             }
             else {
-                currentNode.right = insert(currentNode.right, p, isSplitByX);
+                RectHV childRect = new RectHV(nodeRect.xmin(), currentNode.p.y(), nodeRect.xmax(),
+                                              nodeRect.ymax());
+                currentNode.right = insert(currentNode.right, p, isSplitByX, childRect);
             }
         }
 
@@ -149,36 +159,15 @@ public class KdTree {
 
     private void range(RectHV rect, Node node, ArrayList<Point2D> inRangePoints) {
         if (node == null) return;
+        if (rect.intersects(node.left.nodeRect)) return;
+        if (rect.intersects(node.right.nodeRect)) return;
 
         if (rect.contains(node.p)) {
             inRangePoints.add(node.p);
         }
 
-        if (node.splitByX) {
-            if (rect.xmax() < node.p.x()) {
-                range(rect, node.left, inRangePoints);
-            }
-            else if (rect.xmin() < node.p.x() && rect.xmax() >= node.p.x()) {
-                range(rect, node.left, inRangePoints);
-                range(rect, node.right, inRangePoints);
-            }
-            else if (rect.xmin() >= node.p.x()) {
-                range(rect, node.right, inRangePoints);
-            }
-        }
-        else {
-            // split by Y
-            if (rect.ymax() < node.p.y()) {
-                range(rect, node.left, inRangePoints);
-            }
-            else if (rect.ymin() < node.p.y() && rect.ymax() >= node.p.y()) {
-                range(rect, node.left, inRangePoints);
-                range(rect, node.right, inRangePoints);
-            }
-            else if (rect.ymin() >= node.p.y()) {
-                range(rect, node.right, inRangePoints);
-            }
-        }
+        range(rect, node.left, inRangePoints);
+        range(rect, node.right, inRangePoints);
     }
 
     // // a nearest neighbor in the set to point p; null if the set is empty
