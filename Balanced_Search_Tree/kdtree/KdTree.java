@@ -13,25 +13,25 @@ import java.util.ArrayList;
 
 public class KdTree {
     private static class Node {
-        private boolean splitByX;
-        private Point2D p;
+        private final boolean splitByX;
+        private final Point2D p;
+        private final RectHV rect;
         private Node left, right;
         private int size;
-        private RectHV nodeRect;
 
-        public Node(Point2D p, int size, boolean splitByX, RectHV nodeRect) {
+        public Node(Point2D p, int size, boolean splitByX, RectHV rect) {
             this.p = p;
             this.size = size;
             this.splitByX = splitByX;
-            this.nodeRect = nodeRect;
+            this.rect = rect;
         }
     }
 
     private Node root;
-    private final boolean isSplitByX = true;
-    private final boolean isSplitByY = false;
-    private final double minX = 0.0, maxX = 1.0, minY = 0.0, maxY = 1.0;
-    private final RectHV boardRect = new RectHV(minX, minY, maxX, maxY);
+    static private final boolean isSplitByX = true;
+    static private final boolean isSplitByY = false;
+    static private final double minX = 0.0, maxX = 1.0, minY = 0.0, maxY = 1.0;
+    static private final RectHV boardRect = new RectHV(minX, minY, maxX, maxY);
 
     // construct an empty set of points
     public KdTree() {
@@ -159,8 +159,7 @@ public class KdTree {
 
     private void range(RectHV rect, Node node, ArrayList<Point2D> inRangePoints) {
         if (node == null) return;
-        if (rect.intersects(node.left.nodeRect)) return;
-        if (rect.intersects(node.right.nodeRect)) return;
+        if (rect.intersects(node.rect)) return;
 
         if (rect.contains(node.p)) {
             inRangePoints.add(node.p);
@@ -170,20 +169,67 @@ public class KdTree {
         range(rect, node.right, inRangePoints);
     }
 
-    // // a nearest neighbor in the set to point p; null if the set is empty
-    // public Point2D nearest(Point2D p) {
-    //     double maxDist = -1;
-    //     Point2D closestPoint = null;
-    //
-    //     for (Point2D eachPoint : bst) {
-    //         double distToP = eachPoint.distanceTo(p);
-    //         if (distToP > maxDist) {
-    //             closestPoint = eachPoint;
-    //         }
-    //     }
-    //
-    //     return closestPoint;
-    // }
+    // a nearest neighbor in the set to point p; null if the set is empty
+    public Point2D nearest(Point2D p) {
+        if (p == null) throw new IllegalArgumentException();
+        return nearest(root, p);
+    }
+
+    private Point2D closestPoint = new Point2D(2, 2);
+
+
+    private Point2D nearest(Node node, Point2D p) {
+        if (node == null) return null;
+
+        double distToNode = p.distanceSquaredTo(node.p);
+        double distToClosest = p.distanceSquaredTo(closestPoint);
+
+        if (distToNode < distToClosest) {
+            closestPoint = node.p;
+        }
+
+        // closestSoFar = distToPoint < closestSoFar ? distToPoint : closestSoFar;
+        //
+        // double pToRect = node.rect.distanceSquaredTo(p);
+        // System.out.printf("[%f, %f] dist between point and rect %f",
+        //                   node.p.x(), node.p.y(), pToRect);
+
+        if (node.splitByX) {
+            if (p.x() < node.p.x()) {
+                nearest(node.left, p);
+                if (node.right != null && closestPoint.distanceSquaredTo(p) > node.right.rect
+                        .distanceSquaredTo(p)) {
+                    nearest(node.right, p);
+                }
+            }
+            else {
+                nearest(node.right, p);
+                if (node.left != null && closestPoint.distanceSquaredTo(p) > node.left.rect
+                        .distanceSquaredTo(p)) {
+                    nearest(node.left, p);
+                }
+            }
+        }
+        else {
+            if (p.y() < node.p.y()) {
+                nearest(node.left, p);
+                if (node.right != null && closestPoint.distanceSquaredTo(p) > node.right.rect
+                        .distanceSquaredTo(p)) {
+                    nearest(node.right, p);
+                }
+            }
+            else {
+                nearest(node.right, p);
+                if (node.left != null && closestPoint.distanceSquaredTo(p) > node.left.rect
+                        .distanceSquaredTo(p)) {
+                    nearest(node.left, p);
+                }
+            }
+        }
+
+        return closestPoint;
+
+    }
 
     // unit testing of the methods (optional)
     public static void main(String[] args) {

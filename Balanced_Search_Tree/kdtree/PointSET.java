@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.TreeSet;
 
 public class PointSET {
-    private TreeSet<Point2D> bst;
+    final private TreeSet<Point2D> bst;
 
     // construct an empty set of points
     public PointSET() {
@@ -70,13 +70,16 @@ public class PointSET {
 
     // a nearest neighbor in the set to point p; null if the set is empty
     public Point2D nearest(Point2D p) {
-        double maxDist = -1;
+        if (p == null) throw new IllegalArgumentException();
+
+        double maxDist = 1;
         Point2D closestPoint = null;
 
         for (Point2D eachPoint : bst) {
             double distToP = eachPoint.distanceSquaredTo(p);
-            if (distToP > maxDist) {
+            if (distToP < maxDist) {
                 closestPoint = eachPoint;
+                maxDist = distToP;
             }
         }
 
