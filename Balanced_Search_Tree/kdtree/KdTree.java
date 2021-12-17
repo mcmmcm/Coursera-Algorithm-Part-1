@@ -27,11 +27,12 @@ public class KdTree {
         }
     }
 
+    private static final boolean IS_SPLIT_BY_X = true;
+    private static final boolean IS_SPLIT_BY_Y = false;
+    private static final double MIN_X = 0.0, MAX_X = 1.0, MIN_Y = 0.0, MAX_Y = 1.0;
+    private static final RectHV BOARD_RECT = new RectHV(MIN_X, MIN_Y, MAX_X, MAX_Y);
     private Node root;
-    static private final boolean isSplitByX = true;
-    static private final boolean isSplitByY = false;
-    static private final double minX = 0.0, maxX = 1.0, minY = 0.0, maxY = 1.0;
-    static private final RectHV boardRect = new RectHV(minX, minY, maxX, maxY);
+    private Point2D closestPoint = new Point2D(2, 2);   // To be used in nearest() only
 
     // construct an empty set of points
     public KdTree() {
@@ -44,13 +45,14 @@ public class KdTree {
 
     // number of points in the set
     public int size() {
-        return root.size;
+        if (root == null) return 0;
+        else return root.size;
     }
 
     // add the point to the set (if it is not already in the set)
     public void insert(Point2D p) {
         if (!contains(p)) {
-            root = insert(root, p, isSplitByX, boardRect);
+            root = insert(root, p, IS_SPLIT_BY_X, BOARD_RECT);
         }
     }
 
@@ -64,12 +66,12 @@ public class KdTree {
             if (p.x() < currentNode.p.x()) {
                 RectHV childRect = new RectHV(nodeRect.xmin(), nodeRect.ymin(), currentNode.p.x(),
                                               nodeRect.ymax());
-                currentNode.left = insert(currentNode.left, p, isSplitByY, childRect);
+                currentNode.left = insert(currentNode.left, p, IS_SPLIT_BY_Y, childRect);
             }
             else {
                 RectHV childRect = new RectHV(currentNode.p.x(), nodeRect.ymin(), nodeRect.xmax(),
                                               nodeRect.ymax());
-                currentNode.right = insert(currentNode.right, p, isSplitByY, childRect);
+                currentNode.right = insert(currentNode.right, p, IS_SPLIT_BY_Y, childRect);
             }
         }
         else {
@@ -77,12 +79,12 @@ public class KdTree {
             if (p.y() < currentNode.p.y()) {
                 RectHV childRect = new RectHV(nodeRect.xmin(), nodeRect.ymin(), nodeRect.xmax(),
                                               currentNode.p.y());
-                currentNode.left = insert(currentNode.left, p, isSplitByX, childRect);
+                currentNode.left = insert(currentNode.left, p, IS_SPLIT_BY_X, childRect);
             }
             else {
                 RectHV childRect = new RectHV(nodeRect.xmin(), currentNode.p.y(), nodeRect.xmax(),
                                               nodeRect.ymax());
-                currentNode.right = insert(currentNode.right, p, isSplitByX, childRect);
+                currentNode.right = insert(currentNode.right, p, IS_SPLIT_BY_X, childRect);
             }
         }
 
@@ -115,34 +117,32 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
-        draw(root, minX, maxX, minY, maxY);
+        draw(root, MIN_X, MAX_X, MIN_Y, MAX_Y);
     }
 
-    private void draw(Node node, double minX, double maxX, double minY, double maxY) {
+    private void draw(Node node, double rectXMin, double rectXMax, double rectYMin,
+                      double rectYMax) {
         if (node != null) {
             // Draw the partition line
-            StdDraw.setPenRadius(0.002);
             if (node.splitByX) {
                 // we want to draw a vertical partition line
                 StdDraw.setPenColor(StdDraw.RED);
+                StdDraw.line(node.p.x(), rectYMin, node.p.x(), rectYMax);
 
-                StdDraw.line(node.p.x(), minY, node.p.x(), maxY);
-
-                draw(node.left, minX, node.p.x(), minY, maxY);
-                draw(node.right, node.p.x(), maxX, minY, maxY);
+                draw(node.left, rectXMin, node.p.x(), rectYMin, rectYMax);
+                draw(node.right, node.p.x(), rectXMax, rectYMin, rectYMax);
             }
             else {
                 // splitByY, draw a horizontal partition line
                 StdDraw.setPenColor(StdDraw.BLUE);
-                StdDraw.line(minX, node.p.y(), maxX, node.p.y());
+                StdDraw.line(rectXMin, node.p.y(), rectXMax, node.p.y());
 
-                draw(node.left, minX, maxX, minY, node.p.y());
-                draw(node.right, minX, maxX, node.p.y(), maxY);
+                draw(node.left, rectXMin, rectXMax, rectYMin, node.p.y());
+                draw(node.right, rectXMin, rectXMax, node.p.y(), rectYMax);
             }
 
             // Draw the point last to overwrite the line
             StdDraw.setPenColor(StdDraw.BLACK);
-            StdDraw.setPenRadius(0.01);
             StdDraw.point(node.p.x(), node.p.y());
         }
         // else, the node is empty so return to previous stack
@@ -159,7 +159,7 @@ public class KdTree {
 
     private void range(RectHV rect, Node node, ArrayList<Point2D> inRangePoints) {
         if (node == null) return;
-        if (rect.intersects(node.rect)) return;
+        if (!rect.intersects(node.rect)) return;
 
         if (rect.contains(node.p)) {
             inRangePoints.add(node.p);
@@ -175,8 +175,6 @@ public class KdTree {
         return nearest(root, p);
     }
 
-    private Point2D closestPoint = new Point2D(2, 2);
-
 
     private Point2D nearest(Node node, Point2D p) {
         if (node == null) return null;
@@ -187,12 +185,6 @@ public class KdTree {
         if (distToNode < distToClosest) {
             closestPoint = node.p;
         }
-
-        // closestSoFar = distToPoint < closestSoFar ? distToPoint : closestSoFar;
-        //
-        // double pToRect = node.rect.distanceSquaredTo(p);
-        // System.out.printf("[%f, %f] dist between point and rect %f",
-        //                   node.p.x(), node.p.y(), pToRect);
 
         if (node.splitByX) {
             if (p.x() < node.p.x()) {
@@ -228,7 +220,6 @@ public class KdTree {
         }
 
         return closestPoint;
-
     }
 
     // unit testing of the methods (optional)
@@ -244,15 +235,29 @@ public class KdTree {
             Point2D p = new Point2D(x, y);
             System.out.printf("%f %f\n", x, y);
             kdtree.insert(p);
+            System.out.printf("Size %d\n", kdtree.size());
+            System.out.printf("Is empty? %b\n", kdtree.isEmpty());
         }
 
         // draw the points
         kdtree.draw();
         StdDraw.show();
 
-        // contains() test, N.B. requires -ea option
-        assert kdtree.contains(new Point2D(0.206107, 0.904508));
-        assert !kdtree.contains(new Point2D(0.3, 0.3));
+        // Unit Test: Range search, make a txt file with the following points
+        // 1.0 0.625
+        // 0.25 0.875
+        // 0.125 0.375
+        // 0.375 1.0
+        // 0.5 0.125
+        // Then query rectangle = x[0.0, 0.625],  y[0.25, 0.5]
+        StdDraw.setPenRadius(0.01);
+        StdDraw.setPenColor(StdDraw.YELLOW);
+        StdDraw.point(0.125, 0.375);
+        StdDraw.setPenColor(StdDraw.GREEN);
+        StdDraw.point(0.0, 0.25);
+        StdDraw.point(0.625, 0.5);
+        StdDraw.show();
+        Iterable<Point2D> temp = kdtree.range(new RectHV(0.0, 0.25, 0.626, 0.5));
 
         System.out.println("Running unit test on KdTree... Finish");
     }
